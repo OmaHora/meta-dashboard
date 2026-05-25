@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FB — Where is Waldo Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#f7f6f3; --surface:#fff; --surface2:#f0efe9;
+  --border:rgba(0,0,0,0.08); --border-strong:rgba(0,0,0,0.15);
+  --text:#1a1a18; --muted:#6b6b65; --faint:#9e9e96;
+  --green:#3B6D11; --green-bg:#EAF3DE; --green-mid:#639922;
+  --amber:#854F0B; --amber-bg:#FAEEDA; --amber-mid:#BA7517;
+  --red:#A32D2D; --red-bg:#FCEBEB; --red-mid:#E24B4A;
+  --blue:#185FA5; --blue-bg:#E6F1FB; --blue-mid:#378ADD;
+  --r:10px; --rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:0.5px solid var(--border-strong);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:15px;font-weight:500;display:flex;align-items:center;gap:10px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--blue-mid)}
+.header-right{display:flex;align-items:center;gap:16px}
+.live-badge{font-size:11px;background:var(--green-bg);color:var(--green);border-radius:20px;padding:4px 10px;font-weight:500;display:flex;align-items:center;gap:5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green-mid);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-date{font-size:12px;color:var(--faint);font-family:'DM Mono',monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:32px 24px}
+.sec{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.loading{text-align:center;padding:60px;color:var(--muted);font-size:14px}
+.error-msg{background:var(--red-bg);color:var(--red);border-radius:var(--rs);padding:14px 18px;font-size:13px;margin-bottom:20px;display:none}
+
+/* filter bar */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filter-label{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.fchip{font-size:12px;padding:6px 16px;border-radius:20px;border:0.5px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.fchip:hover{background:var(--surface2)}
+.fchip.all.active{background:#2C2C2A;border-color:#2C2C2A;color:#fff}
+.fchip.top.active{background:var(--green);border-color:var(--green);color:#fff}
+.fchip.mid.active{background:var(--amber);border-color:var(--amber);color:#fff}
+.fchip.low.active{background:var(--red);border-color:var(--red);color:#fff}
+.fchip.headline.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.fchip.description.active{background:#534AB7;border-color:#534AB7;color:#fff}
+.clear-btn{font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;padding:4px 8px;font-family:'DM Sans',sans-serif;display:none;margin-left:auto}
+.focus-banner{display:none;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--rs);margin-bottom:20px;font-size:13px;font-weight:500}
+.focus-banner.show{display:flex}
+.fb-top{background:var(--green-bg);color:var(--green)}
+.fb-mid{background:var(--amber-bg);color:var(--amber)}
+.fb-low{background:var(--red-bg);color:var(--red)}
+.fb-x{background:none;border:none;cursor:pointer;margin-left:auto;font-size:18px;color:inherit;padding:0 4px;line-height:1}
+
+/* metrics */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.mc{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;transition:border-color .15s}
+.mc.clickable{cursor:pointer}
+.mc.clickable:hover{border-color:var(--border-strong)}
+.mc.active-filter{border-color:var(--red-mid);outline:2px solid var(--red-mid);outline-offset:1px}
+.mc-label{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.mc-value{font-size:24px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+.mc-delta{font-size:12px;margin-top:6px}
+.du{color:var(--green)}.dd{color:var(--red)}.dn{color:var(--faint)}
+
+/* cards */
+.full-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:24px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:20px}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{font-size:12px;padding:6px 14px;border-radius:var(--rs);border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .1s}
+.tab.active{background:var(--surface2);color:var(--text);border-color:var(--border-strong)}
+
+/* asset rows */
+.asset-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.asset-row:last-child{border-bottom:none}
+.tier-badge{font-size:11px;font-weight:500;border-radius:4px;padding:3px 9px;white-space:nowrap;cursor:pointer}
+.bt{background:var(--green-bg);color:var(--green)}
+.bm{background:var(--amber-bg);color:var(--amber)}
+.bl{background:var(--red-bg);color:var(--red)}
+.type-tag{font-size:10px;border-radius:3px;padding:2px 6px;background:var(--blue-bg);color:var(--blue);white-space:nowrap}
+.asset-name{font-size:13px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asset-meta{font-size:12px;color:var(--muted);text-align:right;min-width:90px;font-family:'DM Mono',monospace}
+
+/* signals */
+.signal-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.signal-row:last-child{border-bottom:none}
+.sig-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.sd{background:var(--red-bg);color:var(--red)}
+.sw{background:var(--amber-bg);color:var(--amber)}
+.so{background:var(--green-bg);color:var(--green)}
+.sig-text{font-size:13px;color:var(--text);font-weight:500;line-height:1.4}
+.sig-sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.action-chip{display:inline-block;font-size:11px;background:var(--surface2);border:0.5px solid var(--border-strong);border-radius:4px;padding:2px 8px;color:var(--muted);margin-top:5px}
+.empty-state{text-align:center;padding:2rem;font-size:13px;color:var(--faint);display:none}
+.bubble-tip{font-size:12px;color:var(--muted);margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:var(--rs);display:none;font-family:'DM Mono',monospace}
+.legend-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend-line{width:20px;height:2px;border-radius:2px;display:inline-block;vertical-align:middle}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+footer{text-align:center;padding:24px;font-size:11px;color:var(--faint);border-top:0.5px solid var(--border);margin-top:8px;font-family:'DM Mono',monospace}
+@media(max-width:700px){.metric-grid{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}.wrap{padding:20px 16px}header{padding:14px 16px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-dot"></span> FB — Where is Waldo</div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span> Live data</span>
+    <span class="header-date" id="hdate"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="error-msg" id="err-msg"></div>
+  <div class="loading" id="loading">Loading your campaign data from Google Sheets...</div>
+  <div id="dashboard" style="display:none">
+
+    <div class="filter-bar">
+      <span class="filter-label">Tier</span>
+      <button class="fchip all active" onclick="setFilter('tier','all',this)">All</button>
+      <button class="fchip top"        onclick="setFilter('tier','top',this)">&#x2197; Best</button>
+      <button class="fchip mid"        onclick="setFilter('tier','mid',this)">&#x26A0; Good</button>
+      <button class="fchip low"        onclick="setFilter('tier','low',this)">&#x25BC; Low</button>
+      <span style="width:1px;height:20px;background:var(--border-strong);margin:0 4px"></span>
+      <span class="filter-label">Type</span>
+      <button class="fchip headline"    onclick="setFilter('type','Headline',this)">Headline</button>
+      <button class="fchip description" onclick="setFilter('type','Description',this)">Description</button>
+      <button class="clear-btn" id="clear-btn" onclick="clearFilters()">Clear &times;</button>
+    </div>
+
+    <div class="focus-banner" id="focus-banner">
+      <span id="banner-text"></span>
+      <button class="fb-x" onclick="clearFilters()">&times;</button>
+    </div>
+
+    <div class="sec">Overview</div>
+    <div class="metric-grid">
+      <div class="mc"><div class="mc-label">Assets shown</div><div class="mc-value" id="mv-count">—</div><div class="mc-delta dn" id="md-count"></div></div>
+      <div class="mc"><div class="mc-label">Total spend</div><div class="mc-value" id="mv-spend">—</div><div class="mc-delta dn"></div></div>
+      <div class="mc"><div class="mc-label">Avg. CTR</div><div class="mc-value" id="mv-ctr">—</div><div class="mc-delta dn" id="md-ctr"></div></div>
+      <div class="mc clickable" id="mc-low" onclick="setFilter('tier','low',document.querySelector('.fchip.low'))">
+        <div class="mc-label">Low performers</div>
+        <div class="mc-value" id="mv-low">—</div>
+        <div class="mc-delta dd" style="font-size:11px">Click to focus &darr;</div>
+      </div>
+    </div>
+
+    <div class="full-card">
+      <div class="sec">Performance breakdown — cost vs conversion rate</div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchChart('ctr',this)">CTR</button>
+        <button class="tab" onclick="switchChart('conv',this)">Conv. rate</button>
+        <button class="tab" onclick="switchChart('cpi',this)">Cost / Install</button>
+        <button class="tab" onclick="switchChart('roas',this)">Value / Cost</button>
+      </div>
+      <div style="position:relative;width:100%;height:260px">
+        <canvas id="barChart" role="img" aria-label="Bar chart of asset performance metrics"></canvas>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec">Assets</div>
+        <div id="asset-list"></div>
+        <div class="empty-state" id="asset-empty">No assets match this filter</div>
+      </div>
+      <div class="card">
+        <div class="sec">Signals &amp; recommended actions</div>
+        <div id="signal-list"></div>
+        <div class="empty-state" id="signal-empty">No signals for this filter</div>
+      </div>
+    </div>
+
+    <div class="full-card">
+      <div class="sec">Decision matrix — CTR vs Conv. rate (bubble = spend)</div>
+      <div style="position:relative;width:100%;height:280px">
+        <canvas id="bubbleChart" role="img" aria-label="Bubble chart of assets by CTR vs conversion rate"></canvas>
+      </div>
+      <div class="legend-row">
+        <span>Bubble size = spend</span>
+        <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#639922"></span>Best</span>
+        <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#BA7517"></span>Good</span>
+        <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#E24B4A"></span>Low</span>
+      </div>
+      <div class="bubble-tip" id="bubble-tip"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer id="footer-ts">FB Where is Waldo &mdash; data from Google Sheets &mdash; <span id="refresh-ts"></span></footer>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRU2ZYIcVRJJXMvLttEirP29GNxb317WmsPdWKWG6C6hxkmlHrlzFKevceC6aTutiokwAmThds6NVqe/pub?gid=693551126&single=true&output=csv';
+
+document.getElementById('hdate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for(let ch of line){
+      if(ch==='"'){inQ=!inQ}
+      else if(ch===','&&!inQ){vals.push(cur.trim());cur=''}
+      else cur+=ch;
+    }
+    vals.push(cur.trim());
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  });
+}
+
+function pct(s){ return parseFloat((s||'0').replace('%',''))||0; }
+function num(s){ return parseFloat((s||'0').replace(/[^0-9.-]/g,''))||0; }
+
+function tierFromPerf(p){
+  const v = (p||'').toLowerCase();
+  if(v.includes('best')) return 'top';
+  if(v.includes('good')) return 'mid';
+  return 'low';
+}
+
+function actionForAsset(a){
+  if(a.tier==='top') return {text:'Scale — duplicate or increase budget', sig:'ok', icon:'&#x2197;'};
+  if(a.tier==='mid'){
+    if(a.ctr < 0.5) return {text:'Test new hook / headline variant', sig:'warn', icon:'&#x26A0;'};
+    return {text:'Monitor — watch conv. rate trend', sig:'warn', icon:'&#x26A0;'};
+  }
+  return {text:'Pause or replace this creative', sig:'danger', icon:'&#x25BC;'};
+}
+
+let allAssets = [];
+let filters = {tier:'all', type:'all'};
+let barChart, bubbleChart;
+let activeBarMetric = 'ctr';
+
+function getFiltered(){
+  return allAssets.filter(a=>{
+    if(filters.tier!=='all' && a.tier!==filters.tier) return false;
+    if(filters.type!=='all' && (a.type||'').toLowerCase()!==(filters.type||'').toLowerCase()) return false;
+    return true;
+  });
+}
+
+function renderAll(){
+  const f = getFiltered();
+  renderMetrics(f);
+  renderAssets(f);
+  renderSignals(f);
+  updateBarChart(f);
+  updateBubble(f);
+  updateBanner();
+}
+
+function renderMetrics(f){
+  const spend = f.reduce((s,a)=>s+a.cost,0);
+  const ctr   = f.length ? (f.reduce((s,a)=>s+a.ctr,0)/f.length) : 0;
+  const low   = f.filter(a=>a.tier==='low').length;
+  document.getElementById('mv-count').textContent = f.length;
+  document.getElementById('md-count').textContent = `of ${allAssets.length} total assets`;
+  document.getElementById('mv-spend').textContent = '$'+spend.toLocaleString('en-US',{maximumFractionDigits:0});
+  document.getElementById('mv-ctr').textContent   = ctr.toFixed(2)+'%';
+  document.getElementById('mv-low').textContent   = low;
+  document.getElementById('mc-low').classList.toggle('active-filter', filters.tier==='low');
+}
+
+const tierMap={top:['Best','bt'],mid:['Good','bm'],low:['Low','bl']};
+const sigClass={danger:'sd',warn:'sw',ok:'so'};
+
+function renderAssets(f){
+  const el = document.getElementById('asset-list');
+  el.innerHTML = f.map(a=>`
+    <div class="asset-row">
+      <span class="tier-badge ${tierMap[a.tier][1]}" onclick="setFilter('tier','${a.tier}',document.querySelector('.fchip.${a.tier}'))">${tierMap[a.tier][0]}</span>
+      <span class="type-tag">${a.type||'—'}</span>
+      <span class="asset-name" title="${a.name}">${a.name}</span>
+      <span class="asset-meta">${a.ctr.toFixed(2)}% CTR<br><span style="color:var(--faint)">$${a.cost.toFixed(0)} spend</span></span>
+    </div>`).join('');
+  document.getElementById('asset-empty').style.display = f.length?'none':'block';
+}
+
+function renderSignals(f){
+  const el = document.getElementById('signal-list');
+  el.innerHTML = f.map(a=>{
+    const act = actionForAsset(a);
+    const sub = `CTR ${a.ctr.toFixed(2)}% &middot; Conv. ${a.convRate.toFixed(2)}% &middot; CPI $${a.cpi.toFixed(2)}`;
+    return `<div class="signal-row">
+      <div class="sig-icon ${sigClass[act.sig]}">${act.icon}</div>
+      <div>
+        <div class="sig-text">${a.name}</div>
+        <div class="sig-sub">${sub}</div>
+        <span class="action-chip">${act.text}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('signal-empty').style.display = f.length?'none':'block';
+}
+
+const metricDefs = {
+  ctr:  {label:'CTR (%)',         fn:a=>a.ctr,       fmt:v=>v.toFixed(2)+'%'},
+  conv: {label:'Conv. rate (%)',  fn:a=>a.convRate,   fmt:v=>v.toFixed(2)+'%'},
+  cpi:  {label:'Cost / Install ($)', fn:a=>a.cpi,    fmt:v=>'$'+v.toFixed(2)},
+  roas: {label:'Value / Cost',    fn:a=>a.roas,       fmt:v=>v.toFixed(2)+'×'},
+};
+
+function colorForTier(t,alpha){
+  const c={top:'#639922',mid:'#BA7517',low:'#E24B4A'};
+  if(alpha) return c[t]+'66';
+  return c[t];
+}
+
+function updateBarChart(f){
+  const md = metricDefs[activeBarMetric];
+  const labels = f.map(a=>a.name.length>22?a.name.slice(0,22)+'…':a.name);
+  const data   = f.map(a=>parseFloat(md.fn(a).toFixed(3)));
+  const colors = f.map(a=>colorForTier(a.tier));
+  if(barChart){
+    barChart.data.labels = labels;
+    barChart.data.datasets[0].data = data;
+    barChart.data.datasets[0].backgroundColor = colors;
+    barChart.options.scales.y.title.text = md.label;
+    barChart.update();
+  } else {
+    barChart = new Chart(document.getElementById('barChart'),{
+      type:'bar',
+      data:{labels, datasets:[{label:md.label, data, backgroundColor:colors, borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>md.fmt(ctx.raw)}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:11},maxRotation:35}},
+          y:{grid:{color:'rgba(0,0,0,0.05)'},title:{display:true,text:md.label,font:{size:11}},ticks:{font:{size:11}}}
+        }
+      }
+    });
+  }
+}
+
+function switchChart(metric, btn){
+  activeBarMetric = metric;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  updateBarChart(getFiltered());
+}
+
+function updateBubble(f){
+  const groups={top:[],mid:[],low:[]};
+  f.forEach(a=>groups[a.tier].push({x:parseFloat(a.ctr.toFixed(2)),y:parseFloat(a.convRate.toFixed(2)),r:Math.max(6,Math.round(a.cost/120)),label:a.name,tier:a.tier}));
+  const ds=[
+    {label:'Best', backgroundColor:'#63992266',borderColor:'#639922',data:groups.top},
+    {label:'Good', backgroundColor:'#BA751766',borderColor:'#BA7517',data:groups.mid},
+    {label:'Low',  backgroundColor:'#E24B4A66',borderColor:'#E24B4A',data:groups.low},
+  ];
+  if(bubbleChart){
+    bubbleChart.data.datasets=ds; bubbleChart.update();
+  } else {
+    bubbleChart = new Chart(document.getElementById('bubbleChart'),{
+      type:'bubble',
+      data:{datasets:ds},
+      options:{responsive:true,maintainAspectRatio:false,
+        layout:{padding:20},
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>`${ctx.raw.label} | CTR:${ctx.raw.x}% Conv:${ctx.raw.y}%`}}
+        },
+        onClick:(e,els)=>{
+          if(!els.length)return;
+          const d=bubbleChart.data.datasets[els[0].datasetIndex].data[els[0].index];
+          const tip=document.getElementById('bubble-tip');
+          tip.style.display='block';
+          tip.innerHTML=`${d.label} &mdash; CTR ${d.x}% &middot; Conv. ${d.y}%`;
+          const tierKey={Best:'top',Good:'mid',Low:'low'};
+          const t=bubbleChart.data.datasets[els[0].datasetIndex].label;
+          setFilter('tier',tierKey[t]||'all',document.querySelector('.fchip.'+(tierKey[t]||'all')));
+        },
+        scales:{
+          x:{title:{display:true,text:'CTR (%)',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},
+          y:{title:{display:true,text:'Conv. rate (%)',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}}
+        }
+      }
+    });
+  }
+}
+
+function setFilter(dim, val, btn){
+  filters[dim] = val;
+  if(dim==='tier'){
+    document.querySelectorAll('.fchip.all,.fchip.top,.fchip.mid,.fchip.low').forEach(c=>c.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+  } else {
+    document.querySelectorAll('.fchip.headline,.fchip.description').forEach(c=>c.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+  }
+  document.getElementById('clear-btn').style.display = (filters.tier!=='all'||filters.type!=='all') ? 'inline' : 'none';
+  renderAll();
+}
+
+function clearFilters(){
+  filters={tier:'all',type:'all'};
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  document.querySelector('.fchip.all').classList.add('active');
+  document.getElementById('clear-btn').style.display='none';
+  renderAll();
+}
+
+function updateBanner(){
+  const b=document.getElementById('focus-banner');
+  b.className='focus-banner';
+  const parts=[];
+  if(filters.tier!=='all') parts.push({top:'Best performers — scale budget on these',mid:'Good performers — monitor closely',low:'Low performers — consider pausing or replacing'}[filters.tier]);
+  if(filters.type!=='all') parts.push(`Filtered to ${filters.type}s only`);
+  if(!parts.length){b.classList.remove('show');return;}
+  b.classList.add('show');
+  if(filters.tier==='top') b.classList.add('fb-top');
+  else if(filters.tier==='mid') b.classList.add('fb-mid');
+  else b.classList.add('fb-low');
+  document.getElementById('banner-text').textContent=parts.join(' · ');
+}
+
+async function loadData(){
+  try {
+    const res = await fetch(CSV_URL);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if(!rows.length) throw new Error('No data rows found');
+
+    // Detect columns flexibly
+    const sample = rows[0];
+    const keys = Object.keys(sample);
+    const find = (...kws) => keys.find(k=> kws.some(kw=>k.toLowerCase().includes(kw.toLowerCase()))) || '';
+
+    const colName   = find('Asset','asset','Name','name','Creative');
+    const colType   = find('Asset type','type','Type');
+    const colPerf   = find('Performance','performance','Perf');
+    const colCost   = find('Cost','cost','Spend','spend');
+    const colCTR    = find('CTR','ctr');
+    const colConv   = find('Conv. rate (install)','conv. rate','install rate','conv rate');
+    const colCPI    = find('Cost / Install','cost/install','cpi');
+    const colRoas   = find('value / cost','roas','value/cost','revenue');
+
+    allAssets = rows.map(r=>({
+      name:     r[colName]  || 'Unknown asset',
+      type:     r[colType]  || '',
+      perf:     r[colPerf]  || '',
+      tier:     tierFromPerf(r[colPerf]),
+      cost:     num(r[colCost]),
+      ctr:      pct(r[colCTR]),
+      convRate: pct(r[colConv]),
+      cpi:      num(r[colCPI]),
+      roas:     num(r[colRoas]),
+    })).filter(a=>a.name && a.name!=='Unknown asset');
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    document.getElementById('refresh-ts').textContent = 'Last loaded: '+new Date().toLocaleTimeString();
+    renderAll();
+  } catch(e){
+    document.getElementById('loading').style.display='none';
+    const em=document.getElementById('err-msg');
+    em.style.display='block';
+    em.textContent='Could not load sheet data: '+e.message+'. Check the CSV URL is still published.';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
