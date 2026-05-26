@@ -3,373 +3,644 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meta Campaign Cohort Dashboard</title>
+<title>Waldo Campaign Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #f7f6f3;
-    --surface: #ffffff;
-    --surface2: #f0efe9;
-    --border: rgba(0,0,0,0.08);
-    --border-strong: rgba(0,0,0,0.15);
-    --text: #1a1a18;
-    --text-muted: #6b6b65;
-    --text-faint: #9e9e96;
-    --green: #3B6D11; --green-bg: #EAF3DE; --green-mid: #639922;
-    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-mid: #BA7517;
-    --red: #A32D2D; --red-bg: #FCEBEB; --red-mid: #E24B4A;
-    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-mid: #378ADD;
-    --radius: 10px; --radius-sm: 6px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  
-  header { background: var(--surface); border-bottom: 0.5px solid var(--border-strong); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .logo { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
-  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-mid); }
-  .header-meta { font-size: 12px; color: var(--text-faint); font-family: 'DM Mono', monospace; }
+:root{--bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.15);--text:#1a1a18;--muted:#6b6b65;--faint:#9e9e96;--green:#3B6D11;--green-bg:#EAF3DE;--green-mid:#639922;--amber:#854F0B;--amber-bg:#FAEEDA;--red:#A32D2D;--red-bg:#FCEBEB;--red-mid:#E24B4A;--blue:#185FA5;--blue-bg:#E6F1FB;--blue-mid:#378ADD;--purple:#4B3DB5;--purple-bg:#EEEDFE;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:0.5px solid var(--border-strong);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.logo{font-size:15px;font-weight:500;display:flex;align-items:center;gap:10px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--blue-mid)}
+.header-right{display:flex;align-items:center;gap:10px}
+.badge{font-size:11px;border-radius:20px;padding:4px 10px;font-weight:500}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gray{background:var(--surface2);color:var(--muted)}
+.header-date{font-size:12px;color:var(--faint);font-family:'DM Mono',monospace}
 
-  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+/* SOURCE + PERIOD TABS */
+.source-bar{background:var(--surface);border-bottom:0.5px solid var(--border-strong);padding:0 32px;display:flex;align-items:center;position:sticky;top:53px;z-index:190;gap:0}
+.src-tab{font-size:13px;font-weight:500;padding:12px 20px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:7px}
+.src-tab:hover{color:var(--text)}
+.src-tab.active-all{color:var(--text);border-bottom-color:var(--text)}
+.src-tab.active-meta{color:#1877F2;border-bottom-color:#1877F2}
+.src-tab.active-google{color:#EA4335;border-bottom-color:#EA4335}
+.tab-divider{width:1px;height:20px;background:var(--border-strong);margin:0 8px;flex-shrink:0;align-self:center}
+.period-tab{font-size:12px;font-weight:500;padding:10px 16px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s}
+.period-tab:hover{color:var(--text)}
+.period-tab.active-p1{color:var(--amber);border-bottom-color:var(--amber)}
+.period-tab.active-p2{color:var(--purple);border-bottom-color:var(--purple)}
+.period-tab.active-both{color:var(--green);border-bottom-color:var(--green-mid)}
+.mixed-warning{font-size:11px;color:var(--amber);background:var(--amber-bg);border-radius:4px;padding:3px 8px;display:none;margin-left:12px}
+.mixed-warning.show{display:inline-block}
 
-  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-  .filter-label { font-size: 11px; font-weight: 500; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin-right: 4px; }
-  .fchip { font-size: 12px; padding: 6px 16px; border-radius: 20px; border: 0.5px solid var(--border-strong); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif; }
-  .fchip:hover { background: var(--surface2); }
-  .fchip.all.active { background: #2C2C2A; border-color: #2C2C2A; color: #fff; }
-  .fchip.top.active { background: var(--green); border-color: var(--green); color: #fff; }
-  .fchip.mid.active { background: var(--amber); border-color: var(--amber); color: #fff; }
-  .fchip.low.active { background: var(--red); border-color: var(--red); color: #fff; }
-  .clear-btn { font-size: 12px; color: var(--text-faint); background: none; border: none; cursor: pointer; padding: 4px 8px; font-family: 'DM Sans', sans-serif; display: none; margin-left: auto; }
+.wrap{max-width:1100px;margin:0 auto;padding:28px 24px}
+.sec{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
 
-  .focus-banner { display: none; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 13px; font-weight: 500; }
-  .focus-banner.show { display: flex; }
-  .fb-top { background: var(--green-bg); color: var(--green); }
-  .fb-mid { background: var(--amber-bg); color: var(--amber); }
-  .fb-low { background: var(--red-bg); color: var(--red); }
-  .fb-x { background: none; border: none; cursor: pointer; margin-left: auto; font-size: 18px; color: inherit; padding: 0 4px; font-family: 'DM Sans', sans-serif; line-height: 1; }
+/* FILTERS */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filter-label{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.fchip{font-size:12px;padding:6px 16px;border-radius:20px;border:0.5px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.fchip:hover{background:var(--surface2)}
+.fchip.all.active{background:#2C2C2A;border-color:#2C2C2A;color:#fff}
+.chip-active-on{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+.chip-inactive-on{background:var(--red)!important;border-color:var(--red)!important;color:#fff!important}
+.chip-video-on{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+.chip-image-on{background:var(--purple)!important;border-color:var(--purple)!important;color:#fff!important}
+.sep{width:1px;height:20px;background:var(--border-strong);margin:0 4px;flex-shrink:0}
+.clear-btn{font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;padding:4px 8px;font-family:'DM Sans',sans-serif;display:none;margin-left:auto}
+.focus-banner{display:none;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--rs);margin-bottom:20px;font-size:13px;font-weight:500}
+.focus-banner.show{display:flex}
+.fb-green{background:var(--green-bg);color:var(--green)}
+.fb-red{background:var(--red-bg);color:var(--red)}
+.fb-blue{background:var(--blue-bg);color:var(--blue)}
+.fb-x{background:none;border:none;cursor:pointer;margin-left:auto;font-size:18px;color:inherit;padding:0 4px;line-height:1}
 
-  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-  .mc { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 18px 20px; transition: border-color .15s; }
-  .mc.clickable { cursor: pointer; }
-  .mc.clickable:hover { border-color: var(--border-strong); }
-  .mc.active-filter { border-color: var(--red-mid); outline: 2px solid var(--red-mid); outline-offset: 1px; }
-  .mc-label { font-size: 11px; font-weight: 500; color: var(--text-faint); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
-  .mc-value { font-size: 26px; font-weight: 500; color: var(--text); font-family: 'DM Mono', monospace; }
-  .mc-delta { font-size: 12px; margin-top: 6px; }
-  .du { color: var(--green); } .dd { color: var(--red); }
+/* METRICS */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.mc{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.mc-label{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.mc-value{font-size:22px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+.mc-sub{font-size:12px;margin-top:5px;color:var(--muted)}
+.mc-delta{font-size:11px;margin-top:3px;font-family:'DM Mono',monospace}
 
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; }
-  .full-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
-  .sec { font-size: 11px; font-weight: 500; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+/* BENCHMARK */
+.benchmark-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.bm{background:var(--surface);border:0.5px dashed var(--border-strong);border-radius:var(--r);padding:14px 16px}
+.bm-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bm-icon{font-size:16px}
+.bm-label{font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.05em;text-transform:uppercase}
+.bm-value{font-size:18px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;margin-bottom:4px}
+.bm-name{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-  .tab { font-size: 12px; padding: 6px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .1s; }
-  .tab.active { background: var(--surface2); color: var(--text); border-color: var(--border-strong); }
+.full-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:24px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{font-size:12px;padding:6px 14px;border-radius:var(--rs);border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .1s}
+.tab.active{background:var(--surface2);color:var(--text);border-color:var(--border-strong)}
 
-  .asset-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-  .asset-row:last-child { border-bottom: none; }
-  .tier-badge { font-size: 11px; font-weight: 500; border-radius: 4px; padding: 3px 9px; white-space: nowrap; cursor: pointer; }
-  .bt { background: var(--green-bg); color: var(--green); }
-  .bm { background: var(--amber-bg); color: var(--amber); }
-  .bl { background: var(--red-bg); color: var(--red); }
-  .asset-name { font-size: 13px; color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .asset-meta { font-size: 12px; color: var(--text-muted); text-align: right; min-width: 85px; font-family: 'DM Mono', monospace; }
+/* ACTION CARDS */
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.action-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.action-card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.action-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.icon-scale{background:var(--green-bg);color:var(--green)}
+.icon-dup{background:var(--blue-bg);color:var(--blue)}
+.icon-react{background:var(--amber-bg);color:var(--amber)}
+.action-title{font-size:13px;font-weight:500;color:var(--text)}
+.action-subtitle{font-size:11px;color:var(--muted);margin-top:1px}
+.action-asset{padding:10px;border-radius:var(--rs);background:var(--surface2);margin-bottom:6px}
+.action-asset:last-child{margin-bottom:0}
+.action-asset-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.action-asset-name{font-size:12px;color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:6px}
+.action-asset-cid{font-size:10px;color:var(--faint);font-family:'DM Mono',monospace;margin-top:1px}
 
-  .signal-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-  .signal-row:last-child { border-bottom: none; }
-  .sig-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
-  .sd { background: var(--red-bg); color: var(--red); }
-  .sw { background: var(--amber-bg); color: var(--amber); }
-  .so { background: var(--green-bg); color: var(--green); }
-  .sig-text { font-size: 13px; color: var(--text); font-weight: 500; line-height: 1.4; }
-  .sig-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
-  .action-chip { display: inline-block; font-size: 11px; background: var(--surface2); border: 0.5px solid var(--border-strong); border-radius: 4px; padding: 2px 8px; color: var(--text-muted); margin-top: 5px; }
+/* COMPARISON ROW — Option B */
+.cmp-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.cmp-cell{background:var(--surface);border-radius:5px;padding:5px 7px;text-align:center}
+.cmp-cell-label{font-size:9px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.cmp-cell-val{font-size:11px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;line-height:1.3}
+.cmp-cell-delta{font-size:10px;font-family:'DM Mono',monospace;line-height:1.2}
+.cu{color:var(--green)}.cd{color:var(--red)}.cn{color:var(--faint)}
 
-  .empty-state { text-align: center; padding: 2rem; font-size: 13px; color: var(--text-faint); display: none; }
-  .bubble-tip { font-size: 12px; color: var(--text-muted); margin-top: 10px; min-height: 18px; padding: 8px 12px; background: var(--surface2); border-radius: var(--radius-sm); display: none; font-family: 'DM Mono', monospace; }
-  .legend-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .legend-line { width: 20px; height: 2px; border-radius: 2px; display: inline-block; }
+/* BADGES */
+.src-pill{font-size:10px;border-radius:3px;padding:1px 5px;font-weight:500;margin-right:4px;flex-shrink:0}
+.sp-meta{background:#E7F0FE;color:#1877F2}
+.sp-google{background:#FEE8E6;color:#EA4335}
+.new-badge{font-size:10px;font-weight:500;background:var(--blue-bg);color:var(--blue);border-radius:3px;padding:1px 6px;margin-left:4px;flex-shrink:0}
+.paused-badge{font-size:10px;font-weight:500;background:var(--surface2);color:var(--muted);border-radius:3px;padding:1px 6px;margin-left:4px;flex-shrink:0;border:0.5px solid var(--border-strong)}
+.p1-badge{font-size:9px;font-weight:500;background:var(--amber-bg);color:var(--amber);border-radius:3px;padding:1px 5px;flex-shrink:0}
+.p2-badge{font-size:9px;font-weight:500;background:var(--purple-bg);color:var(--purple);border-radius:3px;padding:1px 5px;flex-shrink:0}
 
-  footer { text-align: center; padding: 24px; font-size: 11px; color: var(--text-faint); border-top: 0.5px solid var(--border); margin-top: 16px; font-family: 'DM Mono', monospace; }
+.dup-btn{font-size:11px;font-weight:500;background:var(--blue);color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.dup-btn:hover{background:#1050A0}
+.action-empty{font-size:12px;color:var(--faint);padding:8px 10px;line-height:1.5}
 
-  @media (max-width: 700px) {
-    .metric-grid { grid-template-columns: 1fr 1fr; }
-    .grid-2 { grid-template-columns: 1fr; }
-    .container { padding: 20px 16px; }
-    header { padding: 14px 16px; }
-  }
+.legend-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.bubble-tip{font-size:12px;color:var(--muted);margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:var(--rs);display:none;font-family:'DM Mono',monospace}
+
+footer{text-align:center;padding:20px;font-size:11px;color:var(--faint);border-top:0.5px solid var(--border);margin-top:8px;font-family:'DM Mono',monospace}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-header{padding:20px 24px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:2;border-radius:14px 14px 0 0}
+.modal-title{font-size:15px;font-weight:500;color:var(--text)}
+.modal-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+.modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);line-height:1;padding:2px 6px;border-radius:4px}
+.modal-close:hover{background:var(--surface2)}
+.modal-body{padding:20px 24px}
+.modal-section{font-size:10px;font-weight:500;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin:18px 0 10px;padding-bottom:6px;border-bottom:0.5px solid var(--border)}
+.modal-section:first-child{margin-top:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:11px;font-weight:500;color:var(--muted)}
+.form-label span{color:var(--red);margin-left:2px}
+.form-select,.form-input,.form-textarea{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--surface2);border:0.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 10px;width:100%;outline:none;transition:border-color .15s;appearance:none;-webkit-appearance:none}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e9e96' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--blue-mid);background:#fff}
+.form-textarea{resize:vertical;min-height:70px}
+.readonly-field{font-size:13px;color:var(--text);background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace}
+.modal-footer{padding:16px 24px;border-top:0.5px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);border-radius:0 0 14px 14px}
+.btn-cancel{font-size:13px;padding:8px 18px;border-radius:var(--rs);border:0.5px solid var(--border-strong);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-cancel:hover{background:var(--surface2)}
+.btn-download{font-size:13px;font-weight:500;padding:8px 20px;border-radius:var(--rs);border:none;background:var(--blue);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px}
+.btn-download:hover{background:#1050A0}
+.required-note{font-size:11px;color:var(--faint);margin-top:4px}
+@media(max-width:800px){.metric-grid,.benchmark-bar{grid-template-columns:1fr 1fr}.action-grid{grid-column:1fr}.wrap{padding:20px 16px}header,.source-bar{padding-left:16px;padding-right:16px}.form-grid{grid-template-columns:1fr}.cmp-row{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-
 <header>
-  <div class="logo"><span class="logo-dot"></span> Meta Cohort Dashboard</div>
-  <div class="header-meta" id="header-date"></div>
+  <div class="logo"><span class="logo-dot"></span> Waldo Campaign Dashboard</div>
+  <div class="header-right">
+    <span class="badge badge-gray">50+ installs rule</span>
+    <span class="header-date" id="hdate"></span>
+  </div>
 </header>
 
-<div class="container">
+<div class="source-bar">
+  <button class="src-tab active-all" id="tab-all" onclick="setSource('all',this)">&#x25A6; All sources</button>
+  <button class="src-tab" id="tab-meta" onclick="setSource('meta',this)"><span style="color:#1877F2;font-weight:700">f</span> Meta</button>
+  <button class="src-tab" id="tab-google" onclick="setSource('google',this)"><span style="color:#EA4335;font-weight:700">G</span> Google</button>
+  <span class="tab-divider"></span>
+  <button class="period-tab active-both" id="ptab-both" onclick="setPeriod('both',this)">&#x25C6; Both periods</button>
+  <button class="period-tab" id="ptab-p1" onclick="setPeriod('p1',this)">P1 May 4–18</button>
+  <button class="period-tab" id="ptab-p2" onclick="setPeriod('p2',this)">P2 May 8–26</button>
+  <span class="mixed-warning" id="mixed-warning">&#x26A0; Mixed sources — switch tabs for accurate benchmarks</span>
+</div>
 
+<div class="wrap">
   <div class="filter-bar">
-    <span class="filter-label">Tier</span>
-    <button class="fchip all active" onclick="setFilter('all',this)">All assets</button>
-    <button class="fchip top" onclick="setFilter('top',this)">&#x2197; Top tier</button>
-    <button class="fchip mid" onclick="setFilter('mid',this)">&#x26A0; Mid tier</button>
-    <button class="fchip low" onclick="setFilter('low',this)">&#x1F525; Fatiguing</button>
-    <button class="clear-btn" id="clear-btn" onclick="setFilter('all',document.querySelector('.fchip.all'))">Clear &times;</button>
+    <span class="filter-label">Status</span>
+    <button class="fchip all active" onclick="setFilter('status','all',this)">All</button>
+    <button class="fchip" id="chip-active" onclick="setFilter('status','active',this)">&#x25CF; Active</button>
+    <button class="fchip" id="chip-inactive" onclick="setFilter('status','inactive',this)">&#x25CB; Inactive</button>
+    <span class="sep"></span>
+    <span class="filter-label">Type</span>
+    <button class="fchip" id="chip-video" onclick="setFilter('type','video',this)">Video</button>
+    <button class="fchip" id="chip-image" onclick="setFilter('type','image',this)">Image</button>
+    <button class="clear-btn" id="clear-btn" onclick="clearFilters()">Clear &times;</button>
   </div>
-
-  <div class="focus-banner" id="focus-banner">
-    <span id="banner-text"></span>
-    <button class="fb-x" onclick="setFilter('all',document.querySelector('.fchip.all'))">&times;</button>
-  </div>
+  <div class="focus-banner" id="focus-banner"><span id="banner-text"></span><button class="fb-x" onclick="clearFilters()">&times;</button></div>
 
   <div class="sec">Overview</div>
   <div class="metric-grid">
-    <div class="mc">
-      <div class="mc-label">Total spend</div>
-      <div class="mc-value" id="mv-spend">$24,810</div>
-      <div class="mc-delta du" id="md-spend">&#x2191; 8% vs prior</div>
-    </div>
-    <div class="mc">
-      <div class="mc-label">Avg. ROAS</div>
-      <div class="mc-value" id="mv-roas">3.2&times;</div>
-      <div class="mc-delta dd">&#x2193; 0.4&times; vs prior</div>
-    </div>
-    <div class="mc">
-      <div class="mc-label">Avg. CTR</div>
-      <div class="mc-value" id="mv-ctr">2.1%</div>
-      <div class="mc-delta dd">&#x2193; 0.3pp vs prior</div>
-    </div>
-    <div class="mc clickable" id="mc-flag" onclick="setFilter('low', document.querySelector('.fchip.low'))">
-      <div class="mc-label">Fatiguing assets</div>
-      <div class="mc-value" id="mv-flag">2</div>
-      <div class="mc-delta dd" style="font-size:11px">Click to focus &darr;</div>
-    </div>
+    <div class="mc"><div class="mc-label">Total spend</div><div class="mc-value" id="mv-spend">—</div><div class="mc-sub" id="ms-spend"></div><div class="mc-delta" id="md-spend"></div></div>
+    <div class="mc"><div class="mc-label">Total installs</div><div class="mc-value" id="mv-installs">—</div><div class="mc-sub" id="ms-installs"></div><div class="mc-delta" id="md-installs"></div></div>
+    <div class="mc"><div class="mc-label">Avg. CPI</div><div class="mc-value" id="mv-cpi">—</div><div class="mc-sub" id="ms-cpi"></div><div class="mc-delta" id="md-cpi"></div></div>
+    <div class="mc"><div class="mc-label">Avg. IPM</div><div class="mc-value" id="mv-ipm">—</div><div class="mc-sub" id="ms-ipm"></div><div class="mc-delta" id="md-ipm"></div></div>
+  </div>
+
+  <div id="bm-sec" style="display:none" class="sec">Best performers in this view</div>
+  <div class="benchmark-bar" id="benchmark-bar" style="display:none">
+    <div class="bm"><div class="bm-header"><span class="bm-icon">&#x2B07;</span><span class="bm-label">Best CPI</span></div><div class="bm-value" id="bm-cpi-val">—</div><div class="bm-name" id="bm-cpi-name">—</div></div>
+    <div class="bm"><div class="bm-header"><span class="bm-icon">&#x2B06;</span><span class="bm-label">Best IPM</span></div><div class="bm-value" id="bm-ipm-val">—</div><div class="bm-name" id="bm-ipm-name">—</div></div>
+    <div class="bm"><div class="bm-header"><span class="bm-icon">&#x1F4B0;</span><span class="bm-label">Most installs</span></div><div class="bm-value" id="bm-inst-val">—</div><div class="bm-name" id="bm-inst-name">—</div></div>
+    <div class="bm"><div class="bm-header"><span class="bm-icon">&#x1F4CA;</span><span class="bm-label">Most spend</span></div><div class="bm-value" id="bm-spend-val">—</div><div class="bm-name" id="bm-spend-name">—</div></div>
   </div>
 
   <div class="full-card">
-    <div class="sec">Cohort curves &mdash; metric by asset age (days since launch)</div>
+    <div class="sec">Performance by ad — sorted highest to lowest</div>
     <div class="tabs">
-      <button class="tab active" onclick="switchMetric('ctr',this)">CTR</button>
-      <button class="tab" onclick="switchMetric('roas',this)">ROAS</button>
-      <button class="tab" onclick="switchMetric('cpa',this)">CPA</button>
-      <button class="tab" onclick="switchMetric('freq',this)">Frequency</button>
+      <button class="tab active" onclick="switchChart('spend',this)">Spend ($)</button>
+      <button class="tab" onclick="switchChart('installs',this)">Installs</button>
+      <button class="tab" onclick="switchChart('cpi',this)">CPI ($)</button>
+      <button class="tab" onclick="switchChart('ctr',this)">CTR (%)</button>
+      <button class="tab" onclick="switchChart('ipm',this)">IPM</button>
     </div>
-    <div style="position:relative;width:100%;height:240px">
-      <canvas id="cohortChart" role="img" aria-label="Line chart of CTR by asset age for three cohorts"></canvas>
-    </div>
-    <div class="legend-row" id="cohort-legend"></div>
+    <div style="position:relative;width:100%;height:280px"><canvas id="barChart"></canvas></div>
   </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <div class="sec">Asset tiers</div>
-      <div id="asset-list"></div>
-      <div class="empty-state" id="asset-empty">No assets in this tier</div>
+  <div class="sec">Recommended actions — qualifying assets (50+ installs)</div>
+  <div class="action-grid">
+    <div class="action-card">
+      <div class="action-card-header"><div class="action-icon icon-scale">&#x2197;</div><div><div class="action-title">Scale budget</div><div class="action-subtitle">Active · CPI below source avg</div></div></div>
+      <div id="action-scale"></div>
     </div>
-    <div class="card">
-      <div class="sec">Signals &amp; actions</div>
-      <div id="signal-list"></div>
-      <div class="empty-state" id="signal-empty">No signals for this tier</div>
+    <div class="action-card">
+      <div class="action-card-header"><div class="action-icon icon-dup">&#x2398;</div><div><div class="action-title">Duplicate creative</div><div class="action-subtitle">Top IPM · Create a variant</div></div></div>
+      <div id="action-dup"></div>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><div class="action-icon icon-react">&#x21BA;</div><div><div class="action-title">Reactivate</div><div class="action-subtitle">Inactive · Proven results</div></div></div>
+      <div id="action-react"></div>
     </div>
   </div>
 
   <div class="full-card">
-    <div class="sec">Decision matrix &mdash; click a bubble to inspect</div>
-    <div style="position:relative;width:100%;height:280px">
-      <canvas id="bubbleChart" role="img" aria-label="Bubble chart of assets by ROAS vs CTR, sized by spend"></canvas>
-    </div>
+    <div class="sec">Decision matrix — IPM vs CPI (bubble = spend)</div>
+    <div style="position:relative;width:100%;height:320px"><canvas id="bubbleChart"></canvas></div>
     <div class="legend-row">
-      <span>Bubble size = spend</span>
-      <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#639922"></span>Top tier</span>
-      <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#BA7517"></span>Mid tier</span>
-      <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#E24B4A"></span>Fatiguing</span>
+      <span>Bubble size = spend · top-left = best</span>
+      <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#1877F2"></span>Meta</span>
+      <span style="display:flex;align-items:center;gap:5px"><span class="legend-dot" style="background:#EA4335"></span>Google</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;border:1.5px solid #1877F2;display:inline-block"></span>P1 only</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;border:1.5px solid #534AB7;display:inline-block"></span>P2 only / New</span>
     </div>
     <div class="bubble-tip" id="bubble-tip"></div>
   </div>
-
 </div>
 
-<footer>Meta Cohort Dashboard &mdash; sample data &mdash; replace with your Google Sheet export</footer>
+<footer>Waldo Dashboard · Meta + Google · P1: May 4–18 · P2: May 8–26 · 50+ installs rule</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title">&#x2398; Duplicate Creative Brief</div><div class="modal-subtitle" id="modal-ad-subtitle">—</div></div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">Source asset</div>
+      <div class="form-grid">
+        <div class="form-group full"><div class="form-label">Original ad name</div><div class="readonly-field" id="field-original-name">—</div></div>
+        <div class="form-group"><div class="form-label">Ad ID</div><div class="readonly-field" id="field-original-id">—</div></div>
+        <div class="form-group"><div class="form-label">Performance</div><div class="readonly-field" id="field-original-perf">—</div></div>
+      </div>
+      <div class="modal-section">Task details</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Requested by <span>*</span></label><select class="form-select" id="f-requester"><option value="">Select...</option><option>Omer</option><option>Adi</option><option>Else</option></select></div>
+        <div class="form-group"><label class="form-label">App name <span>*</span></label><select class="form-select" id="f-app"><option value="">Select...</option><option>ExpressVPN</option><option>PrivateInternetAccess</option><option>CyberGhost</option></select></div>
+        <div class="form-group"><label class="form-label">Priority <span>*</span></label><select class="form-select" id="f-priority"><option value="">Select...</option><option>🔴 High</option><option>🟡 Medium</option><option>🟢 Low</option></select></div>
+        <div class="form-group"><label class="form-label">Due date <span>*</span></label><input class="form-input" type="date" id="f-duedate"></div>
+        <div class="form-group"><label class="form-label">Source <span>*</span></label><select class="form-select" id="f-source"><option value="">Select...</option><option>Meta</option><option>Google</option><option>TikTok</option><option>Apple Search Ads</option></select></div>
+        <div class="form-group"><label class="form-label">Language <span>*</span></label><select class="form-select" id="f-language"><option value="">Select...</option><option>English</option><option>Hebrew</option><option>French</option><option>German</option><option>Spanish</option><option>Portuguese</option><option>Italian</option><option>Japanese</option><option>Korean</option></select></div>
+      </div>
+      <div class="modal-section">Creative specs</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Creative type <span>*</span></label><select class="form-select" id="f-creative-type"><option value="">Select...</option><option>Video</option><option>Banner</option><option>Playable</option><option>Carousel</option><option>Story</option></select></div>
+        <div class="form-group"><label class="form-label">Format <span>*</span></label><select class="form-select" id="f-format"><option value="">Select...</option><option>MP4</option><option>GIF</option><option>JPEG</option><option>PNG</option><option>HTML5</option></select></div>
+        <div class="form-group"><label class="form-label">Size <span>*</span></label><select class="form-select" id="f-size"><option value="">Select...</option><option>1080x1080 (Square)</option><option>1080x1920 (Story/Reel)</option><option>1200x628 (Landscape)</option><option>1080x1350 (Portrait 4:5)</option><option>1920x1080 (YouTube)</option><option>300x250</option><option>728x90</option></select></div>
+        <div class="form-group"><label class="form-label">Number of files <span>*</span></label><select class="form-select" id="f-num-files"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></div>
+      </div>
+      <div class="modal-section">Iteration instructions</div>
+      <div class="form-grid">
+        <div class="form-group full"><label class="form-label">What to keep the same</label><textarea class="form-textarea" id="f-keep" placeholder="e.g. Keep same hook, audience, core message..."></textarea></div>
+        <div class="form-group full"><label class="form-label">What to change <span>*</span></label><textarea class="form-textarea" id="f-change" placeholder="e.g. New hook, different CTA, updated headline..."></textarea></div>
+        <div class="form-group full"><label class="form-label">Notes for editor</label><textarea class="form-textarea" id="f-notes" placeholder="Any extra context or requirements..."></textarea></div>
+      </div>
+      <div class="required-note">Fields marked * are required</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-download" onclick="downloadPDF()">&#x2913; Download PDF Brief</button>
+    </div>
+  </div>
+</div>
 
 <script>
-document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 
-const assets = [
-  {name:'Video — summer offer v3',  tier:'top', roas:4.1, ctr:3.2, spend:6200, freq:1.8, sig:'ok',     icon:'&#x2197;', action:'Scale budget +20%',          sub:'ROAS 4.1&times; &middot; Frequency 1.8 &middot; CTR stable'},
-  {name:'Carousel — product grid A',tier:'top', roas:3.8, ctr:2.9, spend:5400, freq:2.1, sig:'ok',     icon:'&#x2197;', action:'Duplicate with variation',     sub:'Strong performer &mdash; good headroom'},
-  {name:'Image — lifestyle hero',   tier:'mid', roas:2.7, ctr:1.8, spend:4100, freq:3.2, sig:'warn',   icon:'&#x26A0;', action:'Test new hook / thumbnail',    sub:'Frequency 3.2 &middot; CTR declining 20% WoW'},
-  {name:'Video — testimonial cut',  tier:'mid', roas:2.3, ctr:1.5, spend:3800, freq:3.6, sig:'warn',   icon:'&#x26A0;', action:'Edit mid/end of video',         sub:'Hold rate dropping &middot; Frequency 3.6'},
-  {name:'Image — discount overlay', tier:'low', roas:1.4, ctr:0.9, spend:2900, freq:5.1, sig:'danger', icon:'&#x25BC;', action:'Pause or replace creative',     sub:'Frequency 5.1 &middot; ROAS below 1.5&times;'},
-  {name:'Video — old hook v1',      tier:'low', roas:1.2, ctr:0.7, spend:2400, freq:5.4, sig:'danger', icon:'&#x25BC;', action:'Pause &amp; reallocate budget', sub:'Frequency 5.4 &middot; CTR down 65% &middot; CPA 3&times; target'},
+// ── DATA ──────────────────────────────────────────────────────────────────────
+// period: 'p1'=May4-18, 'p2'=May8-26, 'both'=exists in both (uses p2 as primary, p1 for delta)
+// For ads only in p1: period='p1'. Only in p2: period='p2'. In both: period='both'.
+
+const META_P1={
+  CID65311:{cpi:5.41,ipm:2.03,installs:3,spend:16.24,ctr:0.068},
+  CID65431:{cpi:4.78,ipm:2.61,installs:5,spend:23.91,ctr:0.313},
+  CID65194:{cpi:6.19,ipm:2.10,installs:5,spend:30.94,ctr:0.964},
+  CID65302:{cpi:1.93,ipm:3.93,installs:6,spend:11.60,ctr:0.262},
+  CID65386:{cpi:2.70,ipm:3.38,installs:7,spend:18.92,ctr:0.290},
+  CID65325:{cpi:8.98,ipm:1.45,installs:10,spend:89.75,ctr:0.448},
+  CID65270:{cpi:4.16,ipm:1.95,installs:12,spend:49.95,ctr:0.373},
+  CID65435:{cpi:13.96,ipm:0.50,installs:13,spend:181.48,ctr:0.206},
+  CID65324:{cpi:11.73,ipm:0.69,installs:14,spend:164.16,ctr:0.247},
+  CID65238:{cpi:1.97,ipm:3.72,installs:15,spend:29.62,ctr:0.471},
+  CID65442:{cpi:5.72,ipm:1.65,installs:24,spend:137.16,ctr:0.275},
+  CID65353:{cpi:9.81,ipm:1.03,installs:29,spend:284.38,ctr:0.294},
+  CID65426:{cpi:4.33,ipm:2.73,installs:30,spend:130.04,ctr:0.473},
+  CID65341:{cpi:5.14,ipm:1.80,installs:39,spend:200.51,ctr:0.268},
+  CID65390:{cpi:6.31,ipm:1.64,installs:57,spend:359.80,ctr:0.322},
+  CID65271:{cpi:8.75,ipm:1.40,installs:48,spend:419.76,ctr:0.329},
+  CID65356:{cpi:7.60,ipm:1.69,installs:70,spend:532.29,ctr:0.350},
+  CID65203:{cpi:5.98,ipm:1.96,installs:73,spend:436.19,ctr:0.741},
+  CID65438:{cpi:4.93,ipm:2.12,installs:84,spend:414.45,ctr:0.358},
+  CID65298:{cpi:4.90,ipm:2.66,installs:87,spend:426.62,ctr:0.377},
+  CID65345:{cpi:5.28,ipm:1.98,installs:89,spend:470.30,ctr:0.285},
+  CID65317:{cpi:4.44,ipm:2.73,installs:93,spend:412.83,ctr:0.643},
+  CID65370:{cpi:5.89,ipm:2.03,installs:103,spend:607.09,ctr:0.428},
+  CID65258:{cpi:5.46,ipm:2.27,installs:103,spend:561.90,ctr:0.575},
+  CID65434:{cpi:3.94,ipm:2.53,installs:109,spend:428.97,ctr:0.456},
+  CID65332:{cpi:4.65,ipm:2.40,installs:110,spend:511.77,ctr:0.365},
+  CID65286:{cpi:3.80,ipm:2.67,installs:112,spend:426.05,ctr:0.683},
+  CID65251:{cpi:3.54,ipm:2.97,installs:116,spend:410.51,ctr:0.746},
+  CID65420:{cpi:3.52,ipm:2.28,installs:121,spend:425.72,ctr:0.649},
+  CID65235:{cpi:3.31,ipm:3.35,installs:127,spend:419.77,ctr:0.809},
+  CID65338:{cpi:3.52,ipm:3.15,installs:128,spend:449.98,ctr:0.821},
+  CID65226:{cpi:3.41,ipm:3.30,installs:133,spend:453.39,ctr:0.910},
+  CID65401:{cpi:2.70,ipm:2.71,installs:160,spend:431.32,ctr:0.505},
+};
+
+const META_P2_RAW=[
+  {id:'CID65401',name:'IP Banner V4',type:'image',status:'inactive',cpi:2.70,ipm:2.71,installs:160,spend:431.32,ctr:0.505},
+  {id:'CID65420',name:'IP Banner V2',type:'image',status:'inactive',cpi:3.52,ipm:2.28,installs:121,spend:425.72,ctr:0.649},
+  {id:'CID65386',name:'Addiction Original',type:'video',status:'inactive',cpi:10.14,ipm:2.94,installs:56,spend:567.82,ctr:11.19},
+  {id:'CID65438',name:'Save Waldo Original',type:'video',status:'inactive',cpi:4.93,ipm:2.12,installs:84,spend:414.45,ctr:0.358},
+  {id:'CID65435',name:'Save Waldo 15"',type:'video',status:'inactive',cpi:4.46,ipm:2.52,installs:97,spend:432.37,ctr:2.81},
+  {id:'CID65434',name:'UGC WALDO PARKOUR',type:'video',status:'inactive',cpi:3.94,ipm:2.53,installs:109,spend:428.97,ctr:0.456},
+  {id:'CID65431',name:'UGC IMPOSSIBLE FIND',type:'video',status:'inactive',cpi:7.12,ipm:3.66,installs:100,spend:712.21,ctr:11.69},
+  {id:'CID65390',name:'Inside the game Animation',type:'video',status:'inactive',cpi:5.05,ipm:2.16,installs:80,spend:404.27,ctr:0.647},
+  {id:'CID65442',name:'Save Waldo Playable iteration',type:'video',status:'inactive',cpi:5.13,ipm:2.36,installs:80,spend:410.58,ctr:2.98},
+  {id:'CID65426',name:'UGC testimonies',type:'video',status:'inactive',cpi:6.72,ipm:2.94,installs:95,spend:638.51,ctr:6.10},
+  {id:'CID65478',name:'Native Banner 8',type:'image',status:'inactive',cpi:3.28,ipm:1.41,installs:159,spend:521.14,ctr:1.07},
+  {id:'CID65481',name:'Native Banner 9',type:'image',status:'inactive',cpi:3.51,ipm:2.12,installs:122,spend:427.61,ctr:1.11},
+  {id:'CID65194',name:'Native Banner 3',type:'image',status:'inactive',cpi:5.81,ipm:1.42,installs:78,spend:452.82,ctr:0.802},
+  {id:'CID65341',name:'Best Performing Race 15"',type:'video',status:'inactive',cpi:5.53,ipm:2.24,installs:74,spend:409.49,ctr:1.95},
+  {id:'CID65317',name:'ASMR Air balloons V1',type:'video',status:'inactive',cpi:4.44,ipm:2.73,installs:93,spend:412.83,ctr:0.643},
+  {id:'CID65324',name:'Text Umbrellas V2',type:'video',status:'inactive',cpi:5.30,ipm:2.19,installs:89,spend:472.07,ctr:1.11},
+  {id:'CID65370',name:'Search + Carousel',type:'video',status:'inactive',cpi:5.89,ipm:2.03,installs:103,spend:607.09,ctr:0.428},
+  {id:'CID65226',name:'Native Banner 1',type:'image',status:'inactive',cpi:3.41,ipm:3.30,installs:133,spend:453.39,ctr:0.910},
+  {id:'CID65338',name:'IP Banner Graphic',type:'image',status:'inactive',cpi:3.52,ipm:3.15,installs:128,spend:449.98,ctr:0.821},
+  {id:'CID65311',name:'Air Balloons Emotional 15"',type:'video',status:'inactive',cpi:7.52,ipm:3.26,installs:72,spend:541.53,ctr:11.21},
+  {id:'CID65270',name:'Native Banner 6',type:'image',status:'inactive',cpi:3.38,ipm:1.26,installs:123,spend:415.71,ctr:1.23},
+  {id:'CID65286',name:'IP Banner V3',type:'image',status:'inactive',cpi:3.80,ipm:2.67,installs:112,spend:426.05,ctr:0.683},
+  {id:'CID65298',name:'Best Performing Slides 30"',type:'video',status:'inactive',cpi:4.91,ipm:2.66,installs:87,spend:426.78,ctr:0.379},
+  {id:'CID65235',name:'IP Banner V1',type:'image',status:'inactive',cpi:3.31,ipm:3.35,installs:127,spend:419.77,ctr:0.809},
+  {id:'CID65271',name:'Best Performing Slides 15',type:'video',status:'inactive',cpi:8.75,ipm:1.40,installs:48,spend:419.76,ctr:0.329},
+  {id:'CID65302',name:'Air Balloons Blitzy or Waldo',type:'video',status:'inactive',cpi:7.51,ipm:3.25,installs:159,spend:1194.02,ctr:9.23},
+  {id:'CID65258',name:'Native Banner 2',type:'image',status:'inactive',cpi:5.46,ipm:2.27,installs:103,spend:561.90,ctr:0.575},
+  {id:'CID65325',name:'ASMR Umbrellas V1',type:'video',status:'inactive',cpi:5.78,ipm:4.64,installs:75,spend:433.17,ctr:9.69},
+  {id:'CID65356',name:'Best Performing Painting 15"',type:'video',status:'inactive',cpi:6.92,ipm:1.85,installs:77,spend:533.20,ctr:0.354},
+  {id:'CID65281',name:'Only 1% V5',type:'video',status:'inactive',cpi:9.07,ipm:2.16,installs:116,spend:1051.89,ctr:7.09},
+  {id:'CID65238',name:'Native Banner 4',type:'image',status:'inactive',cpi:6.72,ipm:0.72,installs:162,spend:1088.39,ctr:1.30},
+  {id:'CID65353',name:'Best Performing Painting 30"',type:'video',status:'inactive',cpi:6.46,ipm:1.90,installs:65,spend:420.07,ctr:1.48},
+  {id:'CID65251',name:'Native Banner 7',type:'image',status:'inactive',cpi:3.54,ipm:2.97,installs:116,spend:410.51,ctr:0.746},
+  {id:'CID65203',name:'Native Banner 5',type:'image',status:'inactive',cpi:5.98,ipm:1.96,installs:73,spend:436.19,ctr:0.741},
+  {id:'CID65345',name:'Best Performing Race 30"',type:'video',status:'inactive',cpi:4.73,ipm:2.22,installs:100,spend:472.90,ctr:0.284},
+  {id:'CID65332',name:'Umbrellas 15"',type:'video',status:'inactive',cpi:4.65,ipm:2.40,installs:110,spend:511.77,ctr:0.365},
 ];
 
-const tierMap = {top:['Top tier','bt'], mid:['Mid tier','bm'], low:['Fatiguing','bl']};
-const sigClass = {danger:'sd', warn:'sw', ok:'so'};
-let activeFilter = 'all';
+// IDs new in P2 (not in P1)
+const NEW_IDS=new Set(['CID65478','CID65481']);
 
-const cohortData = {
-  ctr:{label:'CTR (%)',cohorts:[
-    {name:'Week 1 cohort',color:'#1D9E75',data:[3.2,3.0,2.8,2.5,2.1,1.7,1.3,1.0,0.9,0.8,0.7,0.7,0.6,0.6]},
-    {name:'Week 2 cohort',color:'#378ADD',data:[null,null,null,null,null,null,null,2.9,2.7,2.4,2.0,1.8,1.5,1.2]},
-    {name:'Week 3 cohort',color:'#BA7517',data:[null,null,null,null,null,null,null,null,null,null,null,2.1,2.0,1.9]},
-  ]},
-  roas:{label:'ROAS (×)',cohorts:[
-    {name:'Week 1 cohort',color:'#1D9E75',data:[3.8,3.9,4.1,3.9,3.5,3.0,2.6,2.2,1.9,1.7,1.5,1.4,1.3,1.2]},
-    {name:'Week 2 cohort',color:'#378ADD',data:[null,null,null,null,null,null,null,4.2,4.0,3.6,3.2,2.9,2.5,2.1]},
-    {name:'Week 3 cohort',color:'#BA7517',data:[null,null,null,null,null,null,null,null,null,null,null,3.5,3.4,3.3]},
-  ]},
-  cpa:{label:'CPA ($)',cohorts:[
-    {name:'Week 1 cohort',color:'#1D9E75',data:[18,19,18,20,23,27,31,36,39,42,46,48,51,53]},
-    {name:'Week 2 cohort',color:'#378ADD',data:[null,null,null,null,null,null,null,17,18,20,23,26,29,33]},
-    {name:'Week 3 cohort',color:'#BA7517',data:[null,null,null,null,null,null,null,null,null,null,null,19,20,21]},
-  ]},
-  freq:{label:'Frequency',cohorts:[
-    {name:'Week 1 cohort',color:'#1D9E75',data:[1.0,1.2,1.5,1.9,2.3,2.7,3.1,3.5,3.9,4.2,4.6,4.9,5.1,5.4]},
-    {name:'Week 2 cohort',color:'#378ADD',data:[null,null,null,null,null,null,null,1.0,1.3,1.6,2.0,2.4,2.7,3.1]},
-    {name:'Week 3 cohort',color:'#BA7517',data:[null,null,null,null,null,null,null,null,null,null,null,1.0,1.2,1.5]},
-  ]}
+// Build unified META_ADS array
+const META_ADS=META_P2_RAW.map(a=>{
+  const p1=META_P1[a.id];
+  const isNew=NEW_IDS.has(a.id);
+  return{...a,source:'meta',period:isNew?'p2':'both',p1:p1||null};
+});
+
+// Add P1-only ads that don't appear in P2 (none in this case — all P1 ads appear in P2)
+
+const GOOGLE_ADS=[
+  {name:'Air Balloons Blitzy or Waldo (Portrait)',  id:'CID65308',source:'google',status:'active',type:'video',spend:1419.49,installs:872,cpi:1.63,ctr:8.63,ipm:17.25,period:'p1',p1:null},
+  {name:'Best Performing Slides 30 (Portrait)',     id:'CID65296',source:'google',status:'active',type:'video',spend:445.84, installs:238,cpi:1.87,ctr:5.73,ipm:10.82,period:'p1',p1:null},
+  {name:'Only 1% V5 (Landscape)',                   id:'CID65277',source:'google',status:'active',type:'video',spend:469.52, installs:254,cpi:1.85,ctr:0.83,ipm:3.46,period:'p1',p1:null},
+  {name:'Air Balloons Blitzy or Waldo (Landscape)', id:'CID65304',source:'google',status:'active',type:'video',spend:309.17, installs:174,cpi:1.78,ctr:3.63,ipm:8.08,period:'p1',p1:null},
+  {name:'Inside the game Animation (Portrait)',     id:'CID65392',source:'google',status:'active',type:'video',spend:144.37, installs:62, cpi:2.33,ctr:9.91,ipm:17.60,period:'p1',p1:null},
+  {name:'Best Performing Slides 30 (Landscape)',    id:'CID65299',source:'google',status:'active',type:'video',spend:81.36,  installs:39, cpi:2.09,ctr:3.75,ipm:7.91,period:'p1',p1:null},
+];
+
+const ALL_ADS=[...META_ADS,...GOOGLE_ADS];
+const MIN_INSTALLS=50;
+
+let activeSource='all';
+let activePeriod='both';
+let filters={status:'all',type:'all'};
+let barMetric='spend';
+let barChartObj,bubbleChartObj,currentAd=null;
+
+function getSourceAds(){return activeSource==='meta'?META_ADS:activeSource==='google'?GOOGLE_ADS:ALL_ADS;}
+function getQualified(){return getSourceAds().filter(a=>a.installs>=MIN_INSTALLS);}
+function getFiltered(){
+  return getQualified().filter(a=>{
+    if(filters.status!=='all'&&a.status!==filters.status)return false;
+    if(filters.type!=='all'&&a.type!==filters.type)return false;
+    if(activePeriod==='p1'&&a.period==='p2')return false;
+    if(activePeriod==='p2'&&a.period==='p1')return false;
+    return true;
+  });
+}
+
+function renderAll(){const f=getFiltered();renderMetrics(f);renderBenchmarks(f);updateBar(f);renderActions(f);updateBubble(f);updateBanner();}
+
+// Delta helpers
+function pctChg(old,nw){if(!old||old===0)return null;return((nw-old)/Math.abs(old)*100);}
+function deltaHtml(old,nw,lowerBetter){
+  if(old===null||old===undefined)return'';
+  const d=nw-old;const pct=pctChg(old,nw);
+  if(Math.abs(pct)<0.5)return`<div class="cmp-cell-delta cn">= same</div>`;
+  const up=d>0;
+  // for CPI: lower is better so up=bad; for IPM/installs: higher is better so up=good
+  const good=lowerBetter?!up:up;
+  const cls=good?'cu':'cd';
+  const arrow=up?'▲':'▼';
+  return`<div class="cmp-cell-delta ${cls}">${arrow} ${pct>=0?'+':''}${pct.toFixed(0)}%</div>`;
+}
+
+function cmpRow(a){
+  if(!a.p1||a.period==='p2')return'';
+  return`<div class="cmp-row">
+    <div class="cmp-cell"><div class="cmp-cell-label">CPI</div><div class="cmp-cell-val">P1 $${a.p1.cpi.toFixed(2)}<br>P2 $${a.cpi.toFixed(2)}</div>${deltaHtml(a.p1.cpi,a.cpi,true)}</div>
+    <div class="cmp-cell"><div class="cmp-cell-label">IPM</div><div class="cmp-cell-val">P1 ${a.p1.ipm.toFixed(2)}<br>P2 ${a.ipm.toFixed(2)}</div>${deltaHtml(a.p1.ipm,a.ipm,false)}</div>
+    <div class="cmp-cell"><div class="cmp-cell-label">Installs</div><div class="cmp-cell-val">P1 ${a.p1.installs}<br>P2 ${a.installs}</div>${deltaHtml(a.p1.installs,a.installs,false)}</div>
+    <div class="cmp-cell"><div class="cmp-cell-label">Spend</div><div class="cmp-cell-val">P1 $${Math.round(a.p1.spend)}<br>P2 $${Math.round(a.spend)}</div>${deltaHtml(a.p1.spend,a.spend,false)}</div>
+  </div>`;
+}
+
+function renderMetrics(f){
+  const spend=f.reduce((s,a)=>s+a.spend,0);
+  const installs=f.reduce((s,a)=>s+a.installs,0);
+  const avgCPI=f.length?f.reduce((s,a)=>s+a.cpi,0)/f.length:0;
+  const avgIPM=f.length?f.reduce((s,a)=>s+a.ipm,0)/f.length:0;
+  document.getElementById('mv-spend').textContent='$'+spend.toLocaleString('en-US',{maximumFractionDigits:0});
+  document.getElementById('ms-spend').textContent=f.length+' qualifying ads';
+  document.getElementById('mv-installs').textContent=installs.toLocaleString();
+  document.getElementById('ms-installs').textContent='total installs';
+  document.getElementById('mv-cpi').textContent='$'+avgCPI.toFixed(2);
+  document.getElementById('ms-cpi').textContent='avg cost per install';
+  document.getElementById('mv-ipm').textContent=avgIPM.toFixed(2);
+  document.getElementById('ms-ipm').textContent='avg installs per 1k impr.';
+  // Period deltas on overview cards
+  if(activePeriod==='both'&&activeSource==='meta'){
+    const p1ads=f.filter(a=>a.p1);
+    if(p1ads.length){
+      const p1spend=p1ads.reduce((s,a)=>s+a.p1.spend,0);
+      const p1inst=p1ads.reduce((s,a)=>s+a.p1.installs,0);
+      const p1cpi=p1ads.reduce((s,a)=>s+a.p1.cpi,0)/p1ads.length;
+      const p1ipm=p1ads.reduce((s,a)=>s+a.p1.ipm,0)/p1ads.length;
+      const p2spend=p1ads.reduce((s,a)=>s+a.spend,0);
+      const p2inst=p1ads.reduce((s,a)=>s+a.installs,0);
+      const p2cpi=p1ads.reduce((s,a)=>s+a.cpi,0)/p1ads.length;
+      const p2ipm=p1ads.reduce((s,a)=>s+a.ipm,0)/p1ads.length;
+      const fmt=(old,nw,lb)=>{const p=pctChg(old,nw);if(!p)return'';const up=nw>old;const good=lb?!up:up;const cls=good?'cu':'cd';return`<span class="${cls}" style="font-size:11px;font-family:'DM Mono',monospace">${up?'▲':'▼'} ${Math.abs(p).toFixed(0)}% vs P1</span>`;};
+      document.getElementById('md-spend').innerHTML=fmt(p1spend,p2spend,false);
+      document.getElementById('md-installs').innerHTML=fmt(p1inst,p2inst,false);
+      document.getElementById('md-cpi').innerHTML=fmt(p1cpi,p2cpi,true);
+      document.getElementById('md-ipm').innerHTML=fmt(p1ipm,p2ipm,false);
+    }
+  } else {
+    ['md-spend','md-installs','md-cpi','md-ipm'].forEach(id=>document.getElementById(id).innerHTML='');
+  }
+}
+
+function shortName(n){return n.length>26?n.slice(0,26)+'…':n;}
+function renderBenchmarks(f){
+  const show=f.length>0;
+  document.getElementById('bm-sec').style.display=show?'block':'none';
+  document.getElementById('benchmark-bar').style.display=show?'grid':'none';
+  if(!show)return;
+  const bestCPI=[...f].sort((a,b)=>a.cpi-b.cpi)[0];
+  const bestIPM=[...f].sort((a,b)=>b.ipm-a.ipm)[0];
+  const mostInst=[...f].sort((a,b)=>b.installs-a.installs)[0];
+  const mostSpend=[...f].sort((a,b)=>b.spend-a.spend)[0];
+  document.getElementById('bm-cpi-val').textContent='$'+bestCPI.cpi.toFixed(2);
+  document.getElementById('bm-cpi-name').innerHTML=`<strong>${shortName(bestCPI.name)}</strong> · ${bestCPI.id}`;
+  document.getElementById('bm-ipm-val').textContent=bestIPM.ipm.toFixed(2);
+  document.getElementById('bm-ipm-name').innerHTML=`<strong>${shortName(bestIPM.name)}</strong> · ${bestIPM.id}`;
+  document.getElementById('bm-inst-val').textContent=mostInst.installs.toLocaleString();
+  document.getElementById('bm-inst-name').innerHTML=`<strong>${shortName(mostInst.name)}</strong> · ${mostInst.id}`;
+  document.getElementById('bm-spend-val').textContent='$'+Math.round(mostSpend.spend).toLocaleString();
+  document.getElementById('bm-spend-name').innerHTML=`<strong>${shortName(mostSpend.name)}</strong> · ${mostSpend.id}`;
+}
+
+function colorFor(a){if(a.source==='google')return a.status==='active'?'#EA433580':'#EA433540';return a.type==='image'?(a.status==='active'?'#7F77DDaa':'#AFA9EC55'):(a.status==='active'?'#1877F299':'#1877F255');}
+function borderFor(a){
+  if(a.period==='p2')return'#534AB7';
+  if(a.source==='google')return'#EA4335';
+  return a.type==='image'?(a.status==='active'?'#534AB7':'#7F77DD99'):(a.status==='active'?'#1877F2':'#1877F299');
+}
+
+const metricDefs={
+  spend:{label:'Spend ($)',fn:a=>a.spend,fmt:v=>'$'+v.toFixed(0)},
+  installs:{label:'Installs',fn:a=>a.installs,fmt:v=>v},
+  cpi:{label:'CPI ($)',fn:a=>a.cpi,fmt:v=>'$'+v.toFixed(2)},
+  ctr:{label:'CTR (%)',fn:a=>a.ctr,fmt:v=>v.toFixed(3)+'%'},
+  ipm:{label:'IPM',fn:a=>a.ipm,fmt:v=>v.toFixed(2)},
 };
-const labels14 = Array.from({length:14},(_,i)=>`Day ${i+1}`);
-let activeMetric = 'ctr';
 
-function buildDatasets(m){
-  return cohortData[m].cohorts.map(c=>({
-    label:c.name, data:c.data, borderColor:c.color, backgroundColor:c.color+'22',
-    tension:.4, spanGaps:false, pointRadius:3, borderWidth:2
-  }));
+function updateBar(f){
+  const md=metricDefs[barMetric];
+  const sorted=[...f].sort((a,b)=>md.fn(b)-md.fn(a));
+  const labels=sorted.map(a=>a.name.length>20?a.name.slice(0,20)+'…':a.name);
+  const data=sorted.map(a=>parseFloat(md.fn(a).toFixed(3)));
+  if(barChartObj){barChartObj.data.labels=labels;barChartObj.data.datasets[0].data=data;barChartObj.data.datasets[0].backgroundColor=sorted.map(a=>colorFor(a));barChartObj.data.datasets[0].borderColor=sorted.map(a=>borderFor(a));barChartObj.options.scales.y.title.text=md.label;barChartObj.update();}
+  else{barChartObj=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels,datasets:[{label:md.label,data,backgroundColor:sorted.map(a=>colorFor(a)),borderColor:sorted.map(a=>borderFor(a)),borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>md.fmt(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40}},y:{grid:{color:'rgba(0,0,0,0.05)'},title:{display:true,text:md.label,font:{size:11}},ticks:{font:{size:11}}}}}});}
 }
-function buildLegend(m){
-  document.getElementById('cohort-legend').innerHTML = cohortData[m].cohorts.map(c=>
-    `<span style="display:flex;align-items:center;gap:6px"><span class="legend-line" style="background:${c.color}"></span>${c.name}</span>`
-  ).join('');
+function switchChart(metric,btn){barMetric=metric;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');updateBar(getFiltered());}
+
+function periodBadge(a){
+  if(a.period==='p2')return`<span class="new-badge">NEW</span>`;
+  if(a.period==='p1')return`<span class="paused-badge">P1 only</span>`;
+  return'';
 }
+function srcPill(a){return`<span class="src-pill ${a.source==='meta'?'sp-meta':'sp-google'}">${a.source==='meta'?'Meta':'Google'}</span>`;}
 
-const cohortChart = new Chart(document.getElementById('cohortChart'),{
-  type:'line',
-  data:{labels:labels14, datasets:buildDatasets('ctr')},
-  options:{responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}},
-    scales:{
-      x:{grid:{color:'rgba(0,0,0,0.05)'}, ticks:{font:{size:11}, maxRotation:0}},
-      y:{grid:{color:'rgba(0,0,0,0.05)'}, title:{display:true,text:'CTR (%)',font:{size:11}}, ticks:{font:{size:11}}}
-    }
-  }
-});
-buildLegend('ctr');
-
-function switchMetric(m, btn){
-  activeMetric = m;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  cohortChart.data.datasets = buildDatasets(m);
-  cohortChart.options.scales.y.title.text = cohortData[m].label;
-  cohortChart.update();
-  buildLegend(m);
-}
-
-function renderAssets(){
-  const f = activeFilter==='all' ? assets : assets.filter(a=>a.tier===activeFilter);
-  document.getElementById('asset-list').innerHTML = f.map(a=>`
-    <div class="asset-row">
-      <span class="tier-badge ${tierMap[a.tier][1]}" onclick="setFilter('${a.tier}',document.querySelector('.fchip.${a.tier}'))">${tierMap[a.tier][0]}</span>
-      <span class="asset-name" title="${a.name}">${a.name}</span>
-      <span class="asset-meta">${a.roas.toFixed(1)}&times; ROAS<br><span style="color:#9e9e96">${a.ctr.toFixed(1)}% CTR</span></span>
-    </div>`).join('');
-  document.getElementById('asset-empty').style.display = f.length ? 'none' : 'block';
-
-  document.getElementById('signal-list').innerHTML = f.map(a=>`
-    <div class="signal-row">
-      <div class="sig-icon ${sigClass[a.sig]}">${a.icon}</div>
-      <div>
-        <div class="sig-text">${a.name}</div>
-        <div class="sig-sub">${a.sub}</div>
-        <span class="action-chip">${a.action}</span>
+function assetCard(a,metaText,showDup){
+  const showSrc=activeSource==='all';
+  return`<div class="action-asset">
+    <div class="action-asset-top">
+      <div style="min-width:0;flex:1">
+        <div class="action-asset-name">${showSrc?srcPill(a):''}${a.name}${periodBadge(a)}</div>
+        <div class="action-asset-cid">${a.id}</div>
+        <div class="action-asset-meta" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${metaText}</div>
       </div>
-    </div>`).join('');
-  document.getElementById('signal-empty').style.display = f.length ? 'none' : 'block';
+      ${showDup?`<button class="dup-btn" onclick="openModal('${a.id}','${a.source}')">+ Brief</button>`:''}
+    </div>
+    ${cmpRow(a)}
+  </div>`;
 }
 
-function updateMetrics(){
-  const f = activeFilter==='all' ? assets : assets.filter(a=>a.tier===activeFilter);
-  const spend = f.reduce((s,a)=>s+a.spend,0);
-  const roas = f.length ? (f.reduce((s,a)=>s+a.roas,0)/f.length).toFixed(1) : '—';
-  const ctr  = f.length ? (f.reduce((s,a)=>s+a.ctr, 0)/f.length).toFixed(1) : '—';
-  const fatigue = f.filter(a=>a.tier==='low').length;
-  document.getElementById('mv-spend').textContent = '$'+spend.toLocaleString();
-  document.getElementById('mv-roas').textContent  = roas + (roas==='—' ? '' : '×');
-  document.getElementById('mv-ctr').textContent   = ctr  + (ctr==='—'  ? '' : '%');
-  document.getElementById('mv-flag').textContent  = fatigue;
+function renderActions(f){
+  const metaF=f.filter(a=>a.source==='meta');
+  const googleF=f.filter(a=>a.source==='google');
+  const avgCPI_meta=metaF.length?metaF.reduce((s,a)=>s+a.cpi,0)/metaF.length:999;
+  const avgCPI_google=googleF.length?googleF.reduce((s,a)=>s+a.cpi,0)/googleF.length:999;
+  const scaleList=[...f].filter(a=>a.status==='active'&&((a.source==='meta'&&a.cpi<avgCPI_meta)||(a.source==='google'&&a.cpi<avgCPI_google))).sort((a,b)=>b.installs-a.installs).slice(0,4);
+  const dupList=[...f].sort((a,b)=>b.ipm-a.ipm).slice(0,4);
+  const reactList=[...f].filter(a=>a.status==='inactive').sort((a,b)=>a.cpi-b.cpi).slice(0,4);
+  const el=id=>document.getElementById(id);
+  if(scaleList.length){el('action-scale').innerHTML=scaleList.map(a=>assetCard(a,`CPI $${a.cpi.toFixed(2)} · ${a.installs} installs`,false)).join('');}
+  else{const activeCount=f.filter(a=>a.status==='active').length;el('action-scale').innerHTML=`<div class="action-empty">${activeCount===0?'No active ads in current filter.':'All active ads here are above avg CPI or below 50 installs. Try the source tabs.'}</div>`;}
+  el('action-dup').innerHTML=dupList.length?dupList.map(a=>assetCard(a,`IPM ${a.ipm.toFixed(2)} · ${a.type}`,true)).join(''):'<div class="action-empty">No qualifying assets in this view</div>';
+  el('action-react').innerHTML=reactList.length?reactList.map(a=>assetCard(a,`CPI $${a.cpi.toFixed(2)} · ${a.installs} installs`,false)).join(''):'<div class="action-empty">No inactive assets in this view</div>';
 }
 
-function updateBubble(){
-  const f = activeFilter==='all' ? assets : assets.filter(a=>a.tier===activeFilter);
-  const groups = {top:[],mid:[],low:[]};
-  f.forEach(a=>groups[a.tier].push({x:a.ctr, y:a.roas, r:Math.round(a.spend/400), label:a.name, tier:a.tier}));
-  bubbleChart.data.datasets = [
-    {label:'Top',  backgroundColor:'#63992280', borderColor:'#639922', data:groups.top},
-    {label:'Mid',  backgroundColor:'#BA751780', borderColor:'#BA7517', data:groups.mid},
-    {label:'Low',  backgroundColor:'#E24B4A80', borderColor:'#E24B4A', data:groups.low},
-  ];
-  bubbleChart.update();
+function updateBubble(f){
+  const ds=f.map(a=>({label:a.name+'  '+a.id,data:[{x:parseFloat(a.cpi.toFixed(2)),y:parseFloat(a.ipm.toFixed(2)),r:Math.max(5,Math.round(a.spend/70))}],backgroundColor:colorFor(a),borderColor:borderFor(a),borderWidth:a.period==='p2'?2:1.5}));
+  if(bubbleChartObj){bubbleChartObj.data.datasets=ds;bubbleChartObj.update();}
+  else{bubbleChartObj=new Chart(document.getElementById('bubbleChart'),{type:'bubble',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,layout:{padding:20},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label.split('  ')[0]} | CPI $${ctx.raw.x} · IPM ${ctx.raw.y}`}}},onClick:(e,els)=>{if(!els.length)return;const d=bubbleChartObj.data.datasets[els[0].datasetIndex];const tip=document.getElementById('bubble-tip');tip.style.display='block';tip.innerHTML=`<strong>${d.label.split('  ')[0]}</strong> · ${d.label.split('  ')[1]} — CPI $${d.data[0].x} · IPM ${d.data[0].y}`;},scales:{x:{title:{display:true,text:'CPI ($) — lower is better ←',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},y:{title:{display:true,text:'IPM — higher is better ↑',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}}}}});}
 }
 
-function updateBanner(){
-  const b = document.getElementById('focus-banner');
-  const t = document.getElementById('banner-text');
-  const c = document.getElementById('clear-btn');
-  b.className = 'focus-banner';
-  if(activeFilter==='all'){ b.classList.remove('show'); c.style.display='none'; return; }
-  c.style.display = 'inline';
-  const msgs = {
-    top: 'Showing top-tier assets — high ROAS, healthy CTR, scale-ready',
-    mid: 'Showing mid-tier assets — watch frequency and CTR trends closely',
-    low: 'Showing fatiguing assets — consider pausing or refreshing these creatives'
-  };
-  const cls = {top:'fb-top', mid:'fb-mid', low:'fb-low'};
-  b.classList.add('show', cls[activeFilter]);
-  t.innerHTML = msgs[activeFilter];
+function setSource(src,btn){activeSource=src;document.querySelectorAll('.src-tab').forEach(t=>t.className='src-tab');btn.className=`src-tab active-${src}`;document.getElementById('mixed-warning').classList.toggle('show',src==='all');renderAll();}
+function setPeriod(p,btn){activePeriod=p;document.querySelectorAll('.period-tab').forEach(t=>t.className='period-tab');btn.className=`period-tab active-${p}`;renderAll();}
+
+function setFilter(dim,val,btn){
+  filters[dim]=val;
+  if(dim==='status'){document.querySelectorAll('.fchip.all,#chip-active,#chip-inactive').forEach(c=>c.classList.remove('active','chip-active-on','chip-inactive-on'));if(val==='all')document.querySelector('.fchip.all').classList.add('active');else if(val==='active')btn.classList.add('chip-active-on');else btn.classList.add('chip-inactive-on');}
+  else{document.querySelectorAll('#chip-video,#chip-image').forEach(c=>c.classList.remove('chip-video-on','chip-image-on'));if(val==='video')btn.classList.add('chip-video-on');else btn.classList.add('chip-image-on');}
+  document.getElementById('clear-btn').style.display=(filters.status!=='all'||filters.type!=='all')?'inline':'none';
+  renderAll();
+}
+function clearFilters(){filters={status:'all',type:'all'};document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active','chip-active-on','chip-inactive-on','chip-video-on','chip-image-on'));document.querySelector('.fchip.all').classList.add('active');document.getElementById('clear-btn').style.display='none';renderAll();}
+function updateBanner(){const b=document.getElementById('focus-banner');b.className='focus-banner';const parts=[];if(filters.status==='active')parts.push('Active ads only');if(filters.status==='inactive')parts.push('Inactive ads');if(filters.type==='video')parts.push('Video only');if(filters.type==='image')parts.push('Image only');if(!parts.length){b.classList.remove('show');return;}b.classList.add('show');if(filters.status==='inactive')b.classList.add('fb-red');else if(filters.status==='active')b.classList.add('fb-green');else b.classList.add('fb-blue');document.getElementById('banner-text').textContent=parts.join(' · ');}
+
+// MODAL
+function openModal(adId,src){
+  const pool=src==='meta'?META_ADS:GOOGLE_ADS;
+  currentAd=pool.find(a=>a.id===adId);
+  if(!currentAd)return;
+  document.getElementById('modal-ad-subtitle').textContent='Creating a variant of: '+currentAd.name;
+  document.getElementById('field-original-name').textContent=currentAd.name;
+  document.getElementById('field-original-id').textContent=currentAd.id;
+  document.getElementById('field-original-perf').textContent=`IPM ${currentAd.ipm.toFixed(2)} · CPI $${currentAd.cpi.toFixed(2)} · ${currentAd.installs} installs`;
+  document.getElementById('f-source').value=src==='meta'?'Meta':'Google';
+  document.getElementById('f-creative-type').value='Video';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function fval(id){return document.getElementById(id).value||'—';}
+
+function downloadPDF(){
+  const required=['f-requester','f-app','f-priority','f-duedate','f-source','f-language','f-creative-type','f-format','f-size','f-num-files','f-change'];
+  let missing=false;
+  required.forEach(id=>{const el=document.getElementById(id);if(!el.value){el.style.borderColor='var(--red)';missing=true;}else{el.style.borderColor='';}});
+  if(missing){alert('Please fill in all required fields.');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,margin=20,col=W-margin*2;let y=margin;
+  const srcColor=currentAd.source==='meta'?[24,119,242]:[234,67,53];
+  doc.setFillColor(...srcColor);doc.rect(0,0,W,18,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('Duplicate Creative Brief',margin,12);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(`${currentAd.source==='meta'?'Meta':'Google'} · ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`,W-margin,12,{align:'right'});
+  y=28;
+  function sectionTitle(t){doc.setFillColor(240,239,233);doc.rect(margin,y-4,col,8,'F');doc.setTextColor(107,107,101);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(t.toUpperCase(),margin+3,y+1);y+=9;}
+  function row(label,value,half,xOff){const x=margin+(xOff||0);const w=half?col/2-4:col;doc.setTextColor(158,158,150);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text(label,x,y);doc.setTextColor(26,26,24);doc.setFontSize(10);doc.setFont('helvetica','bold');const lines=doc.splitTextToSize(value,w-2);doc.text(lines,x,y+5);return lines.length*5+3;}
+  function twoCol(l1,v1,l2,v2){const h1=row(l1,v1,true,0);const h2=row(l2,v2,true,col/2+2);y+=Math.max(h1,h2)+4;}
+  function oneCol(label,value){const h=row(label,value,false,0);y+=h+5;}
+  sectionTitle('Source Asset');
+  oneCol('Original Ad Name',currentAd.name);
+  twoCol('Ad ID',currentAd.id,'Source',currentAd.source==='meta'?'Meta':'Google');
+  twoCol('Performance',`IPM ${currentAd.ipm.toFixed(2)} · CPI $${currentAd.cpi.toFixed(2)}`,'Installs',String(currentAd.installs));
+  if(currentAd.p1){sectionTitle('Period Comparison (P1 vs P2)');twoCol('CPI',`P1 $${currentAd.p1.cpi.toFixed(2)} → P2 $${currentAd.cpi.toFixed(2)}`,'IPM',`P1 ${currentAd.p1.ipm.toFixed(2)} → P2 ${currentAd.ipm.toFixed(2)}`);twoCol('Installs',`P1 ${currentAd.p1.installs} → P2 ${currentAd.installs}`,'Spend',`P1 $${Math.round(currentAd.p1.spend)} → P2 $${Math.round(currentAd.spend)}`);}
+  sectionTitle('Task Details');
+  twoCol('Requested By',fval('f-requester'),'App Name',fval('f-app'));
+  twoCol('Priority',fval('f-priority'),'Due Date',fval('f-duedate'));
+  twoCol('Source',fval('f-source'),'Language',fval('f-language'));
+  sectionTitle('Creative Specs');
+  twoCol('Creative Type',fval('f-creative-type'),'Format',fval('f-format'));
+  twoCol('Size',fval('f-size'),'Number of Files',fval('f-num-files'));
+  sectionTitle('Iteration Instructions');
+  oneCol('What to Keep the Same',fval('f-keep'));
+  oneCol('What to Change',fval('f-change'));
+  oneCol('Notes for Editor',fval('f-notes'));
+  doc.setDrawColor(200,200,195);doc.line(margin,y+4,W-margin,y+4);y+=8;
+  doc.setTextColor(158,158,150);doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text('Waldo Dashboard · Creative Duplication Brief · Confidential',margin,y);
+  doc.save(`dup_brief_${currentAd.id}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-function setFilter(tier, btn){
-  activeFilter = tier;
-  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  document.getElementById('mc-flag').classList.toggle('active-filter', tier==='low');
-  renderAssets(); updateMetrics(); updateBubble(); updateBanner();
-}
-
-const bubbleChart = new Chart(document.getElementById('bubbleChart'),{
-  type:'bubble',
-  data:{datasets:[
-    {label:'Top',  backgroundColor:'#63992280', borderColor:'#639922', data:assets.filter(a=>a.tier==='top').map(a=>({x:a.ctr,y:a.roas,r:Math.round(a.spend/400),label:a.name,tier:a.tier}))},
-    {label:'Mid',  backgroundColor:'#BA751780', borderColor:'#BA7517', data:assets.filter(a=>a.tier==='mid').map(a=>({x:a.ctr,y:a.roas,r:Math.round(a.spend/400),label:a.name,tier:a.tier}))},
-    {label:'Low',  backgroundColor:'#E24B4A80', borderColor:'#E24B4A', data:assets.filter(a=>a.tier==='low').map(a=>({x:a.ctr,y:a.roas,r:Math.round(a.spend/400),label:a.name,tier:a.tier}))},
-  ]},
-  options:{responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false},
-      tooltip:{callbacks:{label:ctx=>`${ctx.raw.label} · CTR ${ctx.raw.x.toFixed(1)}% · ROAS ${ctx.raw.y.toFixed(1)}×`}}
-    },
-    onClick:(e,els)=>{
-      if(!els.length) return;
-      const d = bubbleChart.data.datasets[els[0].datasetIndex].data[els[0].index];
-      const tip = document.getElementById('bubble-tip');
-      tip.style.display='block';
-      tip.innerHTML = `${d.label} &mdash; CTR ${d.x.toFixed(1)}% &middot; ROAS ${d.y.toFixed(1)}&times;`;
-      setFilter(d.tier, document.querySelector('.fchip.'+d.tier));
-    },
-    scales:{
-      x:{title:{display:true,text:'CTR (%)',font:{size:11}}, min:0, max:4, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{font:{size:11}}},
-      y:{title:{display:true,text:'ROAS (×)',font:{size:11}}, min:0.5, max:5, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{font:{size:11}}}
-    }
-  }
-});
-
-renderAssets();
+renderAll();
 </script>
 </body>
 </html>
